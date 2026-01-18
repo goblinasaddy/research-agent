@@ -1,5 +1,15 @@
 from pydantic import BaseModel, Field
 from typing import Literal, List, Dict, Optional, Union
+from enum import Enum
+
+# --- V2 Enums ---
+class ExecutionMode(str, Enum):
+    NORMAL = "normal"
+    STRESS_TEST = "stress_test"
+
+class FinalOutcome(str, Enum):
+    ANSWERED = "answered"
+    ABSTAINED = "abstained"
 
 # --- Planner Schemas ---
 
@@ -20,8 +30,8 @@ class ResearchPlan(BaseModel):
 
 class ResearchInput(BaseModel):
     topic: str = Field(..., description="Main topic or query to research")
-    scope: Optional[str] = Field(default=None, description="Scope limitation (e.g., 'last 5 years', 'scientific papers only')")
-    constraints: Optional[List[str]] = Field(default=None, description="Constraints to apply to the search")
+    scope: Optional[str] = Field(default=None, description="Scope limitation")
+    constraints: Optional[List[str]] = Field(default=None, description="Constraints to apply")
 
 class ResearchOutput(BaseModel):
     topic: str
@@ -34,7 +44,7 @@ class ResearchOutput(BaseModel):
 
 class ComparisonInput(BaseModel):
     items: Dict[str, ResearchOutput] = Field(..., description="Dict of Item Name -> ResearchOutput to compare")
-    dimensions: List[str] = Field(..., description="Specific dimensions to compare (e.g., 'price', 'performance')")
+    dimensions: List[str] = Field(..., description="Specific dimensions to compare")
 
 class ComparisonOutput(BaseModel):
     dimensions: List[str]
@@ -55,6 +65,8 @@ class SynthesisOutput(BaseModel):
 
 class VerificationOutput(BaseModel):
     status: Literal["pass", "warn", "fail"]
+    final_outcome: FinalOutcome = Field(default=FinalOutcome.ANSWERED, description="Whether the system answered or abstained")
+    abstention_reason: Optional[str] = Field(default=None, description="Reason for abstention if applicable")
     coverage_check: Dict[int, bool] = Field(..., description="Mapping of Step ID to whether it was covered")
     overclaim_detected: bool
     missing_assumptions: List[str]

@@ -65,31 +65,49 @@ class LLMClient:
             self.provider = "mock"
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
+        max_retries = 3
+        base_delay = 2
+
         if self.provider == "google":
-            try:
-                # Gemini doesn't always support system instructions purely in the same way, 
-                # but we can prepend it or use the system_instruction arg if supported by lib version.
-                # safely prepending for compatibility.
-                full_prompt = f"SYSTEM: {system_prompt}\n\nUSER: {user_prompt}"
-                response = self.client.generate_content(full_prompt)
-                return response.text
-            except Exception as e:
-                logger.error(f"Google generation failed: {e}")
-                return "{}"
+            for attempt in range(max_retries):
+                try:
+                    full_prompt = f"SYSTEM: {system_prompt}\n\nUSER: {user_prompt}"
+                    response = self.client.generate_content(full_prompt)
+                    return response.text
+                except Exception as e:
+                    if "429" in str(e) or "Quota exceeded" in str(e):
+                        if attempt < max_retries - 1:
+                            wait_time = base_delay * (2 ** attempt)
+                            logger.warning(f"Rate limit hit. Retrying in {wait_time}s...")
+                            import time
+                            time.sleep(wait_time)
+                            continue
+                    logger.error(f"Google generation failed: {e}")
+                    return "{}"
+            return "{}"
 
         elif self.provider == "openai":
-            try:
-                response = self.client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ]
-                )
-                return response.choices[0].message.content
-            except Exception as e:
-                logger.error(f"OpenAI generation failed: {e}")
-                return "{}"
+            for attempt in range(max_retries):
+                try:
+                    response = self.client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ]
+                    )
+                    return response.choices[0].message.content
+                except Exception as e:
+                    if "429" in str(e) or "Rate limit" in str(e):
+                        if attempt < max_retries - 1:
+                            wait_time = base_delay * (2 ** attempt)
+                            logger.warning(f"Rate limit hit. Retrying in {wait_time}s...")
+                            import time
+                            time.sleep(wait_time)
+                            continue
+                    logger.error(f"OpenAI generation failed: {e}")
+                    return "{}"
+            return "{}"
 
         else: # Mock
             return self._mock_response(user_prompt)

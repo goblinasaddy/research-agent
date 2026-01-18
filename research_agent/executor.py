@@ -2,7 +2,7 @@ import time
 from typing import List, Dict, Any, Optional
 from .schema import (
     ResearchPlan, ResearchStep, ResearchOutput, ComparisonOutput, 
-    ResearchInput, ComparisonInput
+    ResearchInput, ComparisonInput, ExecutionMode
 )
 from .tools import execute_research, execute_compare
 from .utils import setup_logger, LLMClient
@@ -30,6 +30,10 @@ class Executor:
     def __init__(self, llm_client: LLMClient):
         self.execution_log = ExecutionLog()
         self.llm_client = llm_client
+        self.mode = ExecutionMode.NORMAL
+
+    def set_mode(self, mode: ExecutionMode):
+        self.mode = mode
 
     def validate_plan(self, plan: ResearchPlan) -> bool:
         seen_ids = set()
@@ -56,8 +60,8 @@ class Executor:
                     topic=step.description, 
                     constraints=step.constraints
                 )
-                # Pass LLM client if needed (for now execute_research doesn't use it but good to have)
-                result = execute_research(inp, self.llm_client)
+                # Pass LLM client and Mode
+                result = execute_research(inp, self.llm_client, mode=self.mode)
                 self.execution_log.add_entry(step.id, "success", output=result)
                 
             elif step.type == "compare":
@@ -77,8 +81,8 @@ class Executor:
                     items=items_to_compare,
                     dimensions=step.constraints if step.constraints else ["general"]
                 )
-                # Pass LLM client here
-                result = execute_compare(inp, self.llm_client)
+                # Pass LLM client and Mode
+                result = execute_compare(inp, self.llm_client, mode=self.mode)
                 self.execution_log.add_entry(step.id, "success", output=result)
 
             elif step.type == "synthesize":

@@ -12,9 +12,9 @@ from research_agent.planner import Planner
 from research_agent.executor import Executor
 from research_agent.synthesizer import Synthesizer
 from research_agent.verifier import Verifier
-from research_agent.schema import ResearchPlan
+from research_agent.schema import ResearchPlan, ExecutionMode, FinalOutcome
 
-st.set_page_config(page_title="Agentic Research Assistant", layout="wide")
+st.set_page_config(page_title="Agentic Research Assistant (V2)", layout="wide")
 
 # Custom CSS for "Architecture" feel
 st.markdown("""
@@ -23,15 +23,25 @@ st.markdown("""
     .step-box { padding: 10px; margin: 5px 0; border-left: 4px solid #4CAF50; background-color: #f9f9f9; color: black; }
     .warning-box { padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; color: black; }
     .failure-box { padding: 10px; background-color: #f8d7da; border-left: 4px solid #dc3545; color: black; }
+    .abstain-box { padding: 15px; background-color: #e2e3e5; border-left: 5px solid #6c757d; color: black; }
+    .stress-banner { background-color: #ffcccc; color: #cc0000; padding: 10px; text-align: center; font-weight: bold; border-radius: 5px; margin-bottom: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Research Agent")
-st.markdown("**System Status**: `Online` | **Mode**: `Planner-Executor`")
+st.title("Research Agent V2 (Stressed)")
+st.markdown("**System Status**: `Online` | **Architecture**: `V2 (Failure-Aware)`")
 
 # Sidebar controls
 with st.sidebar:
     st.header("Configuration")
+    
+    # V2: Execution Mode
+    mode_selection = st.radio("Execution Mode", ["Normal", "Stress Test"])
+    execution_mode = ExecutionMode.NORMAL if mode_selection == "Normal" else ExecutionMode.STRESS_TEST
+    
+    if execution_mode == ExecutionMode.STRESS_TEST:
+        st.warning("⚠️ STRESS MODE ACTIVE. Tools will return degraded data.")
+
     api_key = st.text_input("API Key (Google/OpenAI)", type="password", help="Leave empty to try auto-detect or mock")
     provider = st.selectbox("LLM Provider", ["auto", "google", "openai", "mock"])
     
@@ -39,21 +49,16 @@ with st.sidebar:
         st.session_state.clear()
         st.experimental_rerun()
 
-    with st.expander("Help & Documentation"):
+    with st.expander("ℹ️ Help & Documentation"):
         st.markdown("""
         ### Verification Status
         - **PASS**: High confidence, all steps completed.
         - **WARN**: Partial data, missing steps, or potential overclaim.
         - **FAIL**: System error or complete inability to answer.
         
-        ### Dictionary
-        - **Hypotheses**: Provisional conclusions based on evidence.
-        - **Open Questions**: Identified knowledge gaps (to prevent hallucination).
-        - **Directional Summary**: The final, non-authoritative answer.
-        
-        ### Definitions
-        - **Coverage**: Did the agent actually do every step it planned?
-        - **Overclaim**: Did the agent say something the evidence doesn't support?
+        ### V2 Features
+        - **Stress Mode**: Deliberately injects noise to test robustness.
+        - **Abstention**: The agent can refuse to answer if data is insufficient.
         """)
 
 # Initialize session state
@@ -67,6 +72,9 @@ if "verification" not in st.session_state:
     st.session_state.verification = None
 
 # Main Input
+if execution_mode == ExecutionMode.STRESS_TEST:
+    st.markdown("<div class='stress-banner'>⚠️ EXECUTION MODE: STRESS TEST (Failures are intentional)</div>", unsafe_allow_html=True)
+
 query = st.text_area("Research Query", height=100, placeholder="e.g., Compare the economic impact of remote work vs office work in 2024")
 
 if st.button("Start Research"):
@@ -75,6 +83,7 @@ if st.button("Start Research"):
         client = LLMClient(provider=provider, api_key=api_key if api_key else None)
         planner = Planner(client)
         executor = Executor(client)
+        executor.set_mode(execution_mode) # V2 Mode Set
         synthesizer = Synthesizer(client)
         verifier = Verifier(client)
         
@@ -92,7 +101,7 @@ if st.button("Start Research"):
             
     # Display Plan
     with st.expander("Research Plan", expanded=True):
-        st.json(plan.json())
+        st.json(plan.model_dump_json())
 
     # 2. EXECUTE
     st.subheader("Execution Timeline")
@@ -135,38 +144,53 @@ if st.button("Start Research"):
             synthesis = synthesizer.synthesize(executor.execution_log, query)
             st.session_state.synthesis = synthesis
             synth_status.update(label="Synthesis Complete", state="complete")
-        
-        st.subheader("Directional Synthesis")
-        st.info(synthesis.directional_summary)
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write("**Hypotheses:**")
-            for h in synthesis.hypotheses:
-                st.markdown(f"- {h}")
-        with c2:
-            st.write("**Open Questions:**")
-            for q in synthesis.open_questions:
-                st.markdown(f"- {q}")
 
-    # 4. VERIFY
+    # 4. VERIFY & DISPLAY
     if st.session_state.synthesis:
         with st.spinner("Verifying..."):
             verification = verifier.verify(plan, executor.execution_log, synthesis)
             st.session_state.verification = verification
             
         st.subheader("Verification Report")
-        if verification.status == "pass":
-            st.success(f"Status: PASS | Confidence Adjustment: {verification.confidence_adjustment}")
-        elif verification.status == "warn":
-            st.warning(f"Status: WARN | Confidence Adjustment: {verification.confidence_adjustment}")
+        
+        # V2 ABSTENTION DISPLAY
+        if verification.final_outcome == FinalOutcome.ABSTAINED:
+            st.markdown(f"""
+            <div class='abstain-box'>
+                <h3>🚫 System Abstained</h3>
+                <p><b>Reason:</b> {verification.abstention_reason}</p>
+                <p><i>The system determined that it could not provide a reliable answer based on the available data.</i></p>
+            </div>
+            """, unsafe_allow_html=True)
+            
         else:
-            st.error("Status: FAIL")
+            # NORMAL ANSWER DISPLAY
+            if verification.status == "pass":
+                st.success(f"Status: PASS | Confidence Adjustment: {verification.confidence_adjustment}")
+            elif verification.status == "warn":
+                st.warning(f"Status: WARN | Confidence Adjustment: {verification.confidence_adjustment}")
+            else:
+                st.error("Status: FAIL")
+
+            # Show Synthesis only if NOT abstained
+            st.subheader("Directional Synthesis")
+            st.info(synthesis.directional_summary)
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                st.write("**Hypotheses:**")
+                for h in synthesis.hypotheses:
+                    st.markdown(f"- {h}")
+            with c2:
+                st.write("**Open Questions:**")
+                for q in synthesis.open_questions:
+                    st.markdown(f"- {q}")
             
         with st.expander("Verification Details"):
+            st.write("Outcome:", verification.final_outcome.value)
             st.write("Coverage:", verification.coverage_check)
             st.write("Overclaims:", verification.overclaim_detected)
             st.write("Missing Assumptions:", verification.missing_assumptions)
-            
+
 st.markdown("---")
-st.caption("Multi-Step Research Agent | Built with Python & Streamlit | by Aditya Kumar Singh")
+st.caption("Multi-Step Research Agent V2 | Built by Aditya Kumar Singh")
