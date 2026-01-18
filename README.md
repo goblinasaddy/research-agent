@@ -6,7 +6,7 @@ A deterministic, resume-grade AI Agent that functions as a Planner-Executor syst
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 This is **NOT** a simple chatbot. It is an agentic system with strict separation of concerns:
 
@@ -18,7 +18,7 @@ This is **NOT** a simple chatbot. It is an agentic system with strict separation
 4.  **Synthesizer (LLM)**: Integrates execution artifacts into a directional summary.
 5.  **Verifier (Rules + LLM)**: Audits the process for missing steps, overclaims, or low confidence.
 
-## 🚀 Features (V2)
+## Features (V2)
 
 *   **Stress Test Mode**: A system-level toggle to deliberately inject noise and data degradation. Ensures the system fails safely rather than hallucinating.
 *   **Explicit Abstention**: The Verifier has the authority to block an answer ("System Abstained") if data is insufficient or confidence is low.
@@ -26,7 +26,7 @@ This is **NOT** a simple chatbot. It is an agentic system with strict separation
 *   **Transparent Execution**: Watch the agent "think" step-by-step in the UI.
 *   **Epistemic Honesty**: The agent explicitly lists "Open Questions" and "Hypotheses".
 
-## 🛠️ Installation & Run
+## Installation & Run
 
 1.  **Clone the Repository**:
     ```bash
