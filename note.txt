@@ -22,7 +22,32 @@ The `Verifier` component acts as an auditor for the research process. It checks 
     *   `downgrade`: The system recognized it didn't have enough info to be sure, so it lowered the confidence score (e.g., from High to Medium).
     *   `none`: The original confidence level stands.
 
-## 2. Handling Question Types
+## 2. V2 Functionality: Failure-Aware Architecture
+The V2 update adds system-level capabilities to handle uncertainty and failure responsibly.
+
+### ⚠️ execution_mode
+*   **NORMAL**: Standard operation. The agent tries its best to answer.
+*   **STRESS_TEST**: Failure Injection. The system behaves as if data sources are unreliable or contradictory.
+    *   Tools return "insufficient data" or "conflicting reports".
+    *   Confidence is forced to "low".
+    *   Used to test if the Verifier correctly catches the bad data.
+
+### 🚫 Explicit Abstention (FinalOutcome)
+The agent now has two final states:
+1.  **ANSWERED**: Standard behavior.
+2.  **ABSTAINED**: The agent refuses to provide a "directional summary".
+    *   **Triggers**:
+        *   Critically low coverage (execution errors).
+        *   Verifier detects major risks (Overclaims + Low Confidence).
+        *   Prompt is fundamentally unanswerable (caught in Evaluation).
+    *   **UI Behavior**: Hides the synthesis and displays a specific "Abstention Reason".
+
+### 🔎 Evaluation Harness
+*   Located in `evaluation/`.
+*   Uses a set of adversarial prompts (`prompts.json`) to "attack" the agent.
+*   Logs whether the agent correctly abstained or warned when faced with impossible questions.
+
+## 3. Handling Question Types
 The **Planner** decomposes questions into specific *types* of steps to ensure structured thinking:
 
 *   **"Research" Steps**:
@@ -35,7 +60,7 @@ The **Planner** decomposes questions into specific *types* of steps to ensure st
 *   **"Synthesize" Steps**:
     *   The final step. Aggregates all previous findings into a coherent answer.
 
-## 3. Streamlit UI Elements Explained
+## 4. Streamlit UI Elements Explained
 
 ### 📝 Directional Synthesis (The "Final Answer")
 This is the main output area.

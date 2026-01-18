@@ -2,11 +2,11 @@
 
 A deterministic, resume-grade AI Agent that functions as a Planner-Executor system. It is designed to tackle open-ended research questions by decomposing them into structured steps, executing them, and synthesizing a "directional" answer with strict verification.
 
-**Status**: V1 Complete | **Mode**: Planner-Executor | **Built with**: Python, Streamlit, Pydantic, Google Gemini
+**Status**: V2 (Failure-Aware) | **Mode**: Planner-Executor | **Built with**: Python, Streamlit, Pydantic, Google Gemini
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 This is **NOT** a simple chatbot. It is an agentic system with strict separation of concerns:
 
@@ -18,14 +18,15 @@ This is **NOT** a simple chatbot. It is an agentic system with strict separation
 4.  **Synthesizer (LLM)**: Integrates execution artifacts into a directional summary.
 5.  **Verifier (Rules + LLM)**: Audits the process for missing steps, overclaims, or low confidence.
 
-## Features
+## 🚀 Features (V2)
 
+*   **Stress Test Mode**: A system-level toggle to deliberately inject noise and data degradation. Ensures the system fails safely rather than hallucinating.
+*   **Explicit Abstention**: The Verifier has the authority to block an answer ("System Abstained") if data is insufficient or confidence is low.
+*   **Evaluation Harness**: Automated testing against adversarial prompts (ambiguous, nonsense, unanswerable questions).
 *   **Transparent Execution**: Watch the agent "think" step-by-step in the UI.
-*   **Epistemic Honesty**: The agent explicitly lists "Open Questions" and "Hypotheses" rather than pretending to know everything.
-*   **Verification System**: A dedicated "Verifier" module grades the agent's own work (Pass/Warn/Fail).
-*   **Structured Output**: Uses Pydantic to ensure all LLM outputs follow strict JSON schemas.
+*   **Epistemic Honesty**: The agent explicitly lists "Open Questions" and "Hypotheses".
 
-## Installation & Run
+## 🛠️ Installation & Run
 
 1.  **Clone the Repository**:
     ```bash
@@ -49,6 +50,11 @@ This is **NOT** a simple chatbot. It is an agentic system with strict separation
 4.  **Run the UI**:
     ```bash
     streamlit run ui/app.py
+    ```
+
+5.  **Run Evaluation Harness**:
+    ```bash
+    python evaluation/run_evaluation.py
     ```
 
 ## Project Structure
