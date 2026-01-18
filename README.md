@@ -6,7 +6,7 @@ A deterministic, resume-grade AI Agent that functions as a Planner-Executor syst
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 This is **NOT** a simple chatbot. It is an agentic system with strict separation of concerns:
 
@@ -18,14 +18,14 @@ This is **NOT** a simple chatbot. It is an agentic system with strict separation
 4.  **Synthesizer (LLM)**: Integrates execution artifacts into a directional summary.
 5.  **Verifier (Rules + LLM)**: Audits the process for missing steps, overclaims, or low confidence.
 
-## 🚀 Features
+## Features
 
 *   **Transparent Execution**: Watch the agent "think" step-by-step in the UI.
 *   **Epistemic Honesty**: The agent explicitly lists "Open Questions" and "Hypotheses" rather than pretending to know everything.
 *   **Verification System**: A dedicated "Verifier" module grades the agent's own work (Pass/Warn/Fail).
 *   **Structured Output**: Uses Pydantic to ensure all LLM outputs follow strict JSON schemas.
 
-## 🛠️ Installation & Run
+## Installation & Run
 
 1.  **Clone the Repository**:
     ```bash
@@ -51,7 +51,7 @@ This is **NOT** a simple chatbot. It is an agentic system with strict separation
     streamlit run ui/app.py
     ```
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 research-agent/
@@ -69,13 +69,13 @@ research-agent/
 └── README.md
 ```
 
-## 🛡️ Verification Report Explained
+## Verification Report Explained
 
 The UI includes a **Verification Report** to help you trust the output:
 *   **PASS**: High confidence, all steps completed.
 *   **WARN**: Partial data, missing steps, or potential overclaim.
 *   **FAIL**: System error or complete inability to answer.
 
-## ✍️ Author
+## Author
 **Aditya Kumar Singh**
 *   [GitHub](https://github.com/goblinasaddy)
